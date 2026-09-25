@@ -26,6 +26,7 @@ export default async function(req,res){
     if(p==='snapshots')return out(res,200,{items:await rpc('betlab_public_snapshots',{p_limit:lim(req,100)})||[]});
     if(p==='events/current')return out(res,200,{items:await rpc('betlab_public_current_events',{p_limit:lim(req,60,200)})||[]});
     if(p==='backtests')return out(res,200,{items:await rpc('betlab_public_backtests',{p_limit:lim(req,50,200)})||[]});
+    if(p==='signals')return out(res,200,{items:await rpc('betlab_public_signals',{p_limit:lim(req,50,200)})||[]});
     return out(res,404,{error:'Not found'});
   }catch(e){console.error(e);return out(res,500,{error:e.message||'Internal error'})}
 }
