@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BetLab Research Engine</title><link rel="stylesheet" href="/styles.css"></head>
+<body>
+<header><div><div class="eyebrow">RESEARCH-FIRST BETTING LAB</div><h1>BetLab</h1><p>Backtests reproductibles, snapshots de cotes, SHADOW immutable et filtres anti-faux edge.</p></div><span id="health" class="pill">checking</span></header>
+<nav>
+<button data-tab="dashboard" class="active">Dashboard</button><button data-tab="backtest">Backtest</button><button data-tab="strategies">Stratégies</button><button data-tab="snapshots">Snapshots</button><button data-tab="signals">Signaux</button><button data-tab="research">Règles</button>
+</nav>
+<main>
+<section id="dashboard" class="tab active"><div id="cards" class="cards"></div><div class="panel"><h2>Pipeline</h2><div class="pipeline"><b>IDEA</b><span>→</span><b>LAB</b><span>→</span><b>BACKTEST</b><span>→</span><b>SHADOW</b><span>→</span><b>CANARY</b><span>→</span><b>PRODUCTION</b></div><p class="muted">Aucune stratégie n'est promue sur le ROI seul. Les signaux nécessitant des cotes intraday restent LAB tant que l'historique horodaté n'existe pas.</p></div></section>
+<section id="backtest" class="tab"><div class="panel"><h2>Diagnostic Favorite–Longshot — Football-Data</h2><p class="muted">Charge un CSV Football-Data contenant FTR et des cotes 1X2. Le diagnostic calcule de-vig, calibration, ROI par bucket, drawdown, CI bootstrap et dépendance aux grosses cotes.</p><div class="formrow"><input id="csvFile" type="file" accept=".csv,text/csv"><select id="devig"><option value="multiplicative">Multiplicative de-vig</option><option value="power">Power de-vig</option></select><button id="runBacktest">Lancer</button></div><div id="backtestStatus" class="muted"></div></div><div id="backtestResult"></div></section>
+<section id="strategies" class="tab"><div class="panel"><h2>Registre des stratégies</h2><div class="filters"><input id="strategySearch" placeholder="Filtrer…"></div><div id="strategyTable"></div></div></section>
+<section id="snapshots" class="tab"><div class="panel"><h2>Odds Snapshot Recorder</h2><p class="muted">Chaque variation doit être enregistrée avec son timestamp. Sans cela, Bookmaker Lag / Steam / Information Half-Life ne peuvent pas être honnêtement backtestés.</p><div id="snapshotTable"></div></div></section>
+<section id="signals" class="tab"><div class="panel"><h2>Shadow ledger</h2><p class="muted">Les signaux sont append-only. Une révision crée une nouvelle ligne via revision_of : aucun mauvais signal n'est effacé.</p><div id="signalTable"></div></div></section>
+<section id="research" class="tab"><div class="panel"><h2>Gates non négociables</h2><ul><li>Zéro leakage temporel.</li><li>TRAIN → VALIDATION → TEST → walk-forward.</li><li>Flat 10 € avant tout staking.</li><li>ROI + CLV + calibration + stabilité + drawdown.</li><li>Contrôle Longshot Dependency et Profit Concentration.</li><li>Comptabilisation de tous les essais de recherche.</li><li>Stratégies corrélées regroupées par famille.</li><li>Filtre France en default-deny tant que les règles ANJ actuelles ne sont pas chargées.</li></ul><div id="regStatus"></div></div></section>
+</main>
+<script type="module" src="/app.js"></script></body></html>
