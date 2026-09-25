@@ -1,24 +1,51 @@
 # BetLab Research Engine
 
-MVP autonome du laboratoire de stratégies construit dans la conversation : **recherche d'edge, pas promesse de gains**.
+Laboratoire quantitatif de stratégies : **recherche d'edge, pas promesse de gains**.
 
 ## Production
 
 - Site : https://betlab-sandy.vercel.app
 - Backend : Supabase/PostgreSQL, schéma isolé `betlab`.
-- Interface publique : lecture seule (dashboard, stratégies, statut réglementaire).
-- Écritures : RPC privées protégées par token, non exposées dans le code public.
-- Politique réglementaire France : **default-deny** tant que la liste ANJ courante n'est pas chargée.
+- Interface publique : lecture seule.
+- Écritures : uniquement via moteurs privés Supabase / service role.
+- Politique réglementaire France : allowlist conservatrice + **default-deny** pour tout élément non réconcilié.
+
+## Automatisation active
+
+- Collecte Football-Data : toutes les 6 h (`betlab_football_refresh_6h`).
+- Moteur SHADOW / anti-fausse-value : toutes les 6 h, après le refresh (`betlab_shadow_engine_6h`).
+- Backtests historiques : chaque lundi (`betlab_backtest_refresh_weekly`).
+- Les données sont persistées dans Supabase.
+
+## Données et recherche actuellement actives
+
+- 26 stratégies/filtres enregistrés.
+- Snapshot recorder persistant.
+- Prix Football-Data H2H / totals / Asian Handicap quand disponibles.
+- Backtests historiques favori vs longshot sur Angleterre, France, Allemagne, Italie, Espagne.
+- ROI, P/L à 10 € par pari, Brier, Log Loss, ECE, drawdown, série de pertes et intervalle 95 %.
+- Moteur anti-fausse-value : probabilité marché dé-viggée vs meilleur prix observé, avec pénalité d'incertitude croissante avec la cote.
+- Un signal peut être classé `NO_BET`, `SHADOW_BET`, `CANARY` ou `PRODUCTION` ; actuellement seul le niveau SHADOW peut être généré automatiquement.
+- Aucun modèle n'est promu sur la seule base d'un ROI positif isolé.
 
 ## Démarrage local
 
-Prérequis : Node.js 24.x en production Vercel. Le développement local reste compatible avec Node 22.5+.
+Prérequis : Node.js 22.5+ en local, Node 24.x en production Vercel.
 
 ```bash
 npm start
 ```
 
-Sans variables Supabase, BetLab utilise SQLite local. Le serveur local complet peut utiliser Supabase avec `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` et `INGEST_TOKEN`.
+Sans variables Supabase, BetLab utilise SQLite local et autorise les écritures locales.
+
+Avec :
+
+```text
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+le serveur local utilise la production Supabase en **lecture seule**. Les écritures distantes ne sont jamais accessibles via une clé publique.
 
 ## Tests
 
@@ -26,38 +53,39 @@ Sans variables Supabase, BetLab utilise SQLite local. Le serveur local complet p
 npm test
 ```
 
-## Ce qui fonctionne déjà
+## API publique Vercel
 
-- Dashboard responsive smartphone.
-- Production Vercel opérationnelle.
-- Backend Supabase isolé des autres tables du projet hôte.
-- SQLite local via `node:sqlite`.
-- Registre LAB/SHADOW/PRODUCTION prêt.
-- 26 stratégies/filtres prioritaires seedés.
-- Odds Snapshot Recorder côté backend privé.
-- Shadow signal ledger append-only.
-- Multiplicative de-vig et Power de-vig.
-- Shrinkage vers le marché et Robust EV.
-- Upload CSV Football-Data et diagnostic Favorite–Longshot en local/API complète.
-- Calibration par tranche de cote, ROI, bootstrap CI 95 %, Brier, Log Loss, ECE, drawdown, losing streak, LDR, PCR10.
-- Règles France en **default-deny** tant que la liste réglementaire actuelle n'est pas chargée.
+- `/api/health`
+- `/api/dashboard`
+- `/api/strategies`
+- `/api/regulatory/status`
+- `/api/feed/status`
+- `/api/events/current`
+- `/api/snapshots`
+- `/api/backtests`
+- `/api/signals`
 
-## Architecture sécurité production
+Toutes ces routes sont en lecture seule.
 
-Le dashboard Vercel n'utilise que l'URL Supabase et une clé **publishable**. Il appelle uniquement trois RPC publiques et strictement en lecture :
+## Sécurité
 
-- `betlab_public_dashboard()`
-- `betlab_public_strategies()`
-- `betlab_public_regulatory_status()`
+Le bundle Vercel ne contient qu'une clé Supabase **publishable**, jamais de `service_role` ni de secret d'ingestion.
 
-Les tables du schéma `betlab` restent privées. Les RPC d'ingestion et de signaux restent protégées par token côté base et ne sont pas exposées dans le bundle public.
+Les anciennes RPC d'écriture accessibles avec un token ont été retirées de l'accès `anon`. Les moteurs de collecte, backtest et SHADOW fonctionnent côté Supabase avec des fonctions privées.
 
-## Pourquoi les stratégies intraday ne sont pas déjà « backtestées »
+Les tables du schéma `betlab` restent privées et RLS est activé. Les RPC publiques sont limitées à des projections de lecture dédiées avec `search_path` verrouillé.
 
-Bookmaker Lag, Steam, Information Half-Life et le LIVE nécessitent des cotes horodatées pendant la vie du marché. Opening + closing ne suffisent pas. BetLab enregistre donc ces snapshots à partir du moment où un provider est branché.
+## Réglementaire France
+
+BetLab conserve une allowlist versionnée et refuse par défaut les compétitions/marchés non explicitement couverts. La dernière décision détectée est suivie séparément afin d'éviter de transformer une donnée réglementaire incomplète en autorisation implicite.
+
+## Pourquoi les stratégies intraday restent en LAB
+
+Bookmaker Lag, Steam, Information Half-Life et le LIVE nécessitent des cotes réellement horodatées pendant la vie du marché. Les données opening/closing ou batch ne suffisent pas. BetLab les garde donc en LAB jusqu'à disposer d'un historique intraday suffisant.
 
 ## Documentation
 
 - `docs/RESEARCH_SPEC.md` — méthodologie et feuille de route.
-- `docs/API.md` — endpoints d'ingestion et de backtest.
+- `docs/API.md` — endpoints et schémas.
 - `docs/DEPLOYMENT.md` — déploiement Vercel + Supabase.
+- `supabase/functions/` — collecteurs et backtests déployés.
