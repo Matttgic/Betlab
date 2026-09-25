@@ -3,6 +3,8 @@
 ## Health
 `GET /api/health`
 
+Retourne notamment le store actif : `SQLITE_LOCAL` ou `SUPABASE`.
+
 ## Dashboard
 `GET /api/dashboard`
 
@@ -28,7 +30,7 @@
 }
 ```
 
-If `INGEST_TOKEN` is configured, include `Authorization: Bearer <token>`.
+Si `INGEST_TOKEN` est configuré, inclure `Authorization: Bearer <token>`.
 
 ## Shadow signals
 `GET /api/signals?limit=100`
@@ -55,3 +57,7 @@ If `INGEST_TOKEN` is configured, include `Authorization: Bearer <token>`.
 `POST /api/backtests/football-flb`
 
 Body: `{ "csv": "...", "devig": "multiplicative|power", "stake": 10 }`.
+
+## Supabase production adapter
+
+BetLab n'expose pas directement les tables Supabase au rôle `anon`. Le serveur Vercel appelle une petite surface RPC protégée par `INGEST_TOKEN` avec la clé publishable du projet.

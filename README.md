@@ -1,68 +1,62 @@
 # BetLab Research Engine
 
-BetLab is a research-oriented sports-betting strategy laboratory. It is designed to test hypotheses, compare models, record real-time odds snapshots, and promote strategies through a strict lifecycle: LAB → SHADOW → CANARY → PRODUCTION.
+MVP autonome du laboratoire de stratégies construit dans la conversation : **recherche d'edge, pas promesse de gains**.
 
-## What is included
+## Démarrage immédiat
 
-- Strategy registry with benchmark, LAB and SHADOW states
-- Multiplicative and Power de-vig utilities
-- Market/model probability shrinkage
-- Raw and robust EV calculations
-- Football-Data-compatible CSV backtests
-- Brier score, Log Loss and calibration/ECE
-- ROI, drawdown and losing-streak analysis
-- Longshot dependency and profit-concentration checks
-- Immutable shadow-prediction ledger
-- Odds snapshot ingestion API
-- PostgreSQL/Supabase schema
-- France/ANJ regulatory gate designed as default-deny
-- Full research specification in `docs/RESEARCH_SPEC.md`
-
-## Philosophy
-
-A historical ROI is never treated as proof of a durable edge. Strategies must survive time-aware out-of-sample testing, calibration checks, robustness tests, and live shadow validation before production use.
-
-The project deliberately separates:
-
-- **research hypotheses** from validated strategies;
-- **model probability** from market probability;
-- **raw EV** from uncertainty-adjusted robust EV;
-- **historical backtests** from true timestamped market-microstructure tests.
-
-## Quick start
+Prérequis : Node.js 24.x en production Vercel. Le développement local reste compatible avec Node 22.5+.
 
 ```bash
-npm install
-npm test
 npm start
 ```
 
-Open `http://localhost:3000`.
+Sans variables Supabase, BetLab utilise SQLite local. En production, il bascule automatiquement sur Supabase quand `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` et `INGEST_TOKEN` sont définis.
 
-## Sample backtest
-
-Use the bundled sample file:
+## Tests
 
 ```bash
-curl -X POST http://localhost:3000/api/backtest/football-data \
-  -H 'content-type: application/json' \
-  -d '{"csvPath":"data/sample-football-data.csv"}'
+npm test
 ```
 
-## Persistence
+## Ce qui fonctionne déjà
 
-The default runtime can operate locally for research. For durable storage, apply:
+- Dashboard responsive smartphone.
+- SQLite local via `node:sqlite`.
+- Adaptateur Supabase sécurisé pour la production.
+- Registre LAB/SHADOW/PRODUCTION prêt.
+- 26 stratégies/filtres prioritaires seedés.
+- Odds Snapshot Recorder via API.
+- Shadow signal ledger append-only.
+- Multiplicative de-vig et Power de-vig.
+- Shrinkage vers le marché et Robust EV.
+- Upload CSV Football-Data et diagnostic Favorite–Longshot.
+- Calibration par tranche de cote, ROI, bootstrap CI 95 %, Brier, Log Loss, ECE, drawdown, losing streak, LDR, PCR10.
+- Règles France en **default-deny** tant que la liste réglementaire actuelle n'est pas chargée.
+
+## Production Vercel + Supabase
+
+Appliquer dans l'ordre :
+
+1. `supabase/schema.sql`
+2. `supabase/production-hardening.sql`
+3. `supabase/seed-strategies.sql`
+
+Puis définir :
 
 ```text
-supabase/schema.sql
+INGEST_TOKEN=<secret long>
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-to a PostgreSQL/Supabase project, then connect the ingestion layer to that database.
+La production utilise uniquement la clé **publishable** côté application et des RPC PostgreSQL protégées par `INGEST_TOKEN`. Aucune clé `service_role` / secret Supabase n'est nécessaire dans BetLab.
 
-## Important limitations
+## Pourquoi les stratégies intraday ne sont pas déjà « backtestées »
 
-- Intraday bookmaker-lag, steam and live strategies require real timestamped odds snapshots. Opening/closing-only datasets are not enough.
-- The regulatory filter is default-deny until an up-to-date allowed competition/phase/market dataset is loaded.
-- No strategy is presented as profitable merely because it performed well historically.
+Bookmaker Lag, Steam, Information Half-Life et le LIVE nécessitent des cotes horodatées pendant la vie du marché. Opening + closing ne suffisent pas. BetLab enregistre donc ces snapshots à partir du moment où un provider est branché.
 
-See `docs/RESEARCH_SPEC.md` for the full methodology and `docs/API.md` for endpoints.
+## Documentation
+
+- `docs/RESEARCH_SPEC.md` — méthodologie et feuille de route.
+- `docs/API.md` — endpoints d'ingestion et de backtest.
+- `docs/DEPLOYMENT.md` — déploiement Vercel + Supabase.
