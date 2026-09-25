@@ -1,0 +1,15 @@
+{
+  "name": "betlab-research-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Research-first sports betting strategy laboratory with immutable shadow signals, odds snapshots and reproducible backtests.",
+  "engines": { "node": ">=22.5.0" },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "seed": "node scripts/seed.mjs",
+    "demo:snapshots": "node scripts/demo-snapshots.mjs"
+  }
+}
