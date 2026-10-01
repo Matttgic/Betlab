@@ -4,6 +4,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { backtestFootballFLB } from './lib/backtest.mjs';
 import {
+  applyIsotonicCalibrator,
+  attachPregameFeatures,
+  fitIsotonicCalibrator,
+  fractionalKelly,
+  temporalSplit
+} from './lib/research.mjs';
+import {
+  readSportsDataset,
+  readSportsDataverseManifest,
+  summarizeSportsDataverse
+} from './lib/sportsdataverse.mjs';
+import {
   dashboardStats,
   insertSignal,
   insertSnapshots,
@@ -76,13 +88,55 @@ export async function handleRequest(req, res) {
       const result = backtestFootballFLB(String(body.csv||''),{devig:body.devig||'multiplicative',stake:Number(body.stake||10)});
       return json(res,200,result);
     }
+    if (p === '/api/research/capabilities' && req.method === 'GET') {
+      return json(res,200,{
+        temporalSplit:true,
+        isotonicCalibration:true,
+        eloPregame:true,
+        fatiguePregame:true,
+        fractionalKelly:true,
+        productionSignalsChanged:false,
+        note:'Research utilities are isolated from the SHADOW/production promotion path.'
+      });
+    }
+    if (p === '/api/research/temporal-split' && req.method === 'POST') {
+      const body = JSON.parse(await readBody(req));
+      const rows = Array.isArray(body.rows) ? body.rows : [];
+      const result = temporalSplit(rows,{trainEnd:body.trainEnd,calibrationEnd:body.calibrationEnd,dateField:body.dateField||'date'});
+      return json(res,200,result);
+    }
+    if (p === '/api/research/pregame-features' && req.method === 'POST') {
+      const body = JSON.parse(await readBody(req));
+      const matches = Array.isArray(body.matches) ? body.matches : [];
+      return json(res,200,{items:attachPregameFeatures(matches,body.options||{})});
+    }
+    if (p === '/api/research/calibrate' && req.method === 'POST') {
+      const body = JSON.parse(await readBody(req));
+      const observations = Array.isArray(body.observations) ? body.observations : [];
+      const calibrator = fitIsotonicCalibrator(observations);
+      const probabilities = Array.isArray(body.probabilities) ? body.probabilities : [];
+      return json(res,200,{calibrator,calibrated:probabilities.map((value)=>applyIsotonicCalibrator(calibrator,value))});
+    }
+    if (p === '/api/research/kelly' && req.method === 'POST') {
+      const body = JSON.parse(await readBody(req));
+      return json(res,200,{fraction:fractionalKelly(body.p,body.odds,{fraction:body.fraction??0.25,cap:body.cap??0.10})});
+    }
+    if (p === '/api/sportsdataverse/status' && req.method === 'GET') {
+      return json(res,200,summarizeSportsDataverse(await readSportsDataverseManifest()));
+    }
+    const sdvMatch = p.match(/^\/api\/sportsdataverse\/([a-z0-9_-]+)\/([a-zA-Z0-9_-]+)$/);
+    if (sdvMatch && req.method === 'GET') {
+      const limit = Math.min(5000,Math.max(1,Number(url.searchParams.get('limit')||500)));
+      const result = await readSportsDataset(sdvMatch[1],sdvMatch[2],limit);
+      return json(res,200,result);
+    }
     if (p === '/api/regulatory/status' && req.method === 'GET') return json(res,200,await regulatoryStatus());
     if (p.startsWith('/api/')) return json(res,404,{error:'Not found'});
     if (serveStatic(req,res,p)) return;
     return text(res,404,'Not found');
   } catch (err) {
     console.error(err);
-    return json(res,500,{error:err.message || 'Internal error'});
+    return json(res,err.statusCode||500,{error:err.message || 'Internal error'});
   }
 }
 

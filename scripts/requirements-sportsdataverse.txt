@@ -1,0 +1,2 @@
+sportsdataverse>=0.0.75,<1.0.0
+pandas>=2.2,<3
