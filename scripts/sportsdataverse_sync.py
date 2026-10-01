@@ -14,7 +14,8 @@ REGISTRY = {
     "nba": ("sportsdataverse.nba", ["load_nba_schedule", "load_nba_player_boxscore"]),
     "wnba": ("sportsdataverse.wnba", ["load_wnba_schedule", "load_wnba_player_boxscore"]),
     "nfl": ("sportsdataverse.nfl", ["load_nfl_schedule"]),
-    "mlb": ("sportsdataverse.mlb", ["load_mlb_schedule"]),
+    # MLB uses the current Stats API wrapper rather than a release-store load_* helper.
+    "mlb": ("sportsdataverse.mlb", ["mlb_schedule"]),
 }
 
 
@@ -35,6 +36,16 @@ def to_records(frame: Any) -> list[dict[str, Any]]:
 
 
 def call_loader(module: Any, loader_name: str, season: int):
+    if loader_name == "mlb_schedule":
+        schedule_fn = getattr(module, "mlb_schedule", None)
+        parser_fn = getattr(module, "parse_mlb_api_schedule", None)
+        if schedule_fn is None or parser_fn is None:
+            raise AttributeError("Current MLB schedule API/parser is not exported")
+        payload = schedule_fn(season=season, game_type="R")
+        if not isinstance(payload, dict) or not payload.get("dates"):
+            raise ValueError("MLB Stats API returned no schedule dates")
+        return parser_fn(payload, return_as_pandas=True)
+
     fn = getattr(module, loader_name, None)
     if fn is None:
         raise AttributeError(f"{loader_name} is not exported")
