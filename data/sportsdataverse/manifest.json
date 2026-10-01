@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-01T22:54:52.968933+00:00",
+  "season": 2026,
+  "sports": {
+    "nhl": {
+      "module": "sportsdataverse.nhl",
+      "datasets": {
+        "load_nhl_schedule": {
+          "file": "nhl__load_nhl_schedule.json",
+          "rows": 1394
+        },
+        "load_nhl_player_boxscore": {
+          "file": "nhl__load_nhl_player_boxscore.json",
+          "rows": 55758
+        }
+      },
+      "healthy": true
+    },
+    "nba": {
+      "module": "sportsdataverse.nba",
+      "datasets": {
+        "load_nba_schedule": {
+          "file": "nba__load_nba_schedule.json",
+          "rows": 1330
+        },
+        "load_nba_player_boxscore": {
+          "file": "nba__load_nba_player_boxscore.json",
+          "rows": 34883
+        }
+      },
+      "healthy": true
+    },
+    "wnba": {
+      "module": "sportsdataverse.wnba",
+      "datasets": {
+        "load_wnba_schedule": {
+          "file": "wnba__load_wnba_schedule.json",
+          "rows": 360
+        },
+        "load_wnba_player_boxscore": {
+          "file": "wnba__load_wnba_player_boxscore.json",
+          "rows": 8246
+        }
+      },
+      "healthy": true
+    },
+    "nfl": {
+      "module": "sportsdataverse.nfl",
+      "datasets": {
+        "load_nfl_schedule": {
+          "file": "nfl__load_nfl_schedule.json",
+          "rows": 272
+        }
+      },
+      "healthy": true
+    },
+    "mlb": {
+      "module": "sportsdataverse.mlb",
+      "datasets": {},
+      "healthy": false
+    }
+  },
+  "errors": [
+    {
+      "sport": "mlb",
+      "loader": "load_mlb_schedule",
+      "error": "AttributeError: load_mlb_schedule is not exported"
+    }
+  ],
+  "healthySports": [
+    "nhl",
+    "nba",
+    "wnba",
+    "nfl"
+  ],
+  "healthy": true
+}
