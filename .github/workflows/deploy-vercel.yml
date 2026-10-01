@@ -1,0 +1,51 @@
+name: Deploy BetLab to Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: betlab-vercel-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_ORG_ID: team_34rUK292IYRd3o8tMP8swP8w
+      VERCEL_PROJECT_ID: prj_JgCt1OPIxWbL25Lf6oVBYflcw3pa
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Run tests
+        run: npm test
+
+      - name: Verify Vercel token
+        shell: bash
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "VERCEL_TOKEN repository secret is required"
+            exit 2
+          fi
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull production configuration
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build production bundle
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy production bundle
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
