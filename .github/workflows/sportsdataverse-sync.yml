@@ -21,7 +21,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: betlab-sportsdataverse-sync
+  group: betlab-sportsdataverse-sync-v2
   cancel-in-progress: true
 
 jobs:
@@ -32,6 +32,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0
+      - name: Prepare named sync branch
+        shell: bash
+        run: |
+          git fetch origin main
+          git switch -C sportsdataverse-sync-work origin/main
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -56,5 +62,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "data: refresh SportsDataverse snapshots"
-          git pull --rebase origin main
+          git fetch origin main
+          git rebase origin/main
+          if git merge-base --is-ancestor HEAD origin/main; then
+            echo "Snapshot already present upstream after rebase"
+            exit 0
+          fi
           git push origin HEAD:main
