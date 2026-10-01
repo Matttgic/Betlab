@@ -1,0 +1,55 @@
+name: SportsDataverse sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      sports:
+        description: Sports to refresh (comma separated)
+        required: false
+        default: nhl,nba,wnba,nfl,mlb
+      season:
+        description: Season start year (blank = current UTC year)
+        required: false
+  schedule:
+    - cron: "43 5 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: betlab-sportsdataverse-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install SportsDataverse adapter
+        run: pip install -r scripts/requirements-sportsdataverse.txt
+      - name: Refresh snapshots
+        env:
+          SPORTS: ${{ inputs.sports || 'nhl,nba,wnba,nfl,mlb' }}
+          REQUESTED_SEASON: ${{ inputs.season }}
+        shell: bash
+        run: |
+          SEASON="${REQUESTED_SEASON:-$(date -u +%Y)}"
+          python scripts/sportsdataverse_sync.py --season "$SEASON" --sports "$SPORTS"
+      - name: Commit changed snapshots
+        shell: bash
+        run: |
+          if git diff --quiet -- data/sportsdataverse; then
+            echo "No snapshot changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/sportsdataverse
+          git commit -m "data: refresh SportsDataverse snapshots"
+          git push
