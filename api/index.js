@@ -1,4 +1,9 @@
-import { backtestFootballFLB } from '../lib/backtest.mjs';
+import { backtestFootballFLB, backtestFootballFLBMany } from '../lib/backtest.mjs';
+import {
+  FOOTBALL_DATA_LEAGUES,
+  downloadFootballDataSet,
+  recentSeasonKeys
+} from '../lib/footballData.mjs';
 import {
   applyIsotonicCalibrator,
   attachPregameFeatures,
@@ -51,6 +56,41 @@ function bodyOf(req) {
   return req.body;
 }
 
+async function automaticFootballBacktest(body = {}) {
+  const devig = body.devig || 'multiplicative';
+  const stake = Number(body.stake || 10);
+  const downloaded = await downloadFootballDataSet({ seasons: body.seasons, leagues: body.leagues });
+  if (!downloaded.items.length) {
+    const err = new Error(`Aucun CSV Football-Data téléchargé. ${downloaded.errors.map((x) => x.error).join(' | ')}`);
+    err.statusCode = 502;
+    throw err;
+  }
+  const overall = backtestFootballFLBMany(downloaded.items.map((x) => x.csv), { devig, stake });
+  const sources = downloaded.items.map((source) => {
+    const result = backtestFootballFLB(source.csv, { devig, stake });
+    return {
+      league: source.league,
+      leagueName: source.leagueName,
+      country: source.country,
+      season: source.season,
+      seasonLabel: source.seasonLabel,
+      url: source.url,
+      matches: result.meta.matches,
+      favoriteClose: result.executable.favoriteClose,
+      longshotClose: result.executable.longshotClose
+    };
+  });
+  return {
+    source: 'Football-Data.co.uk',
+    fetchedAt: new Date().toISOString(),
+    requested: { seasons: downloaded.seasons, leagues: downloaded.leagues },
+    loadedSources: sources.length,
+    errors: downloaded.errors,
+    overall,
+    sources
+  };
+}
+
 export default async function handler(req, res) {
   try {
     const p = routePath(req);
@@ -64,6 +104,7 @@ export default async function handler(req, res) {
         mode: 'PUBLIC_READ_PRIVATE_WRITE',
         researchCore: true,
         sportsDataverse: true,
+        footballDataAutoBacktest: true,
         time: new Date().toISOString()
       });
     }
@@ -77,6 +118,10 @@ export default async function handler(req, res) {
     if (p === 'backtests' && method === 'GET') return out(res, 200, { items: await rpc('betlab_public_backtests', { p_limit: lim(req, 50, 200) }) || [] });
     if (p === 'signals' && method === 'GET') return out(res, 200, { items: await rpc('betlab_public_signals', { p_limit: lim(req, 50, 200) }) || [] });
 
+    if (p === 'football-data/catalog' && method === 'GET') {
+      return out(res, 200, { leagues: FOOTBALL_DATA_LEAGUES, defaultSeasons: recentSeasonKeys(3) });
+    }
+
     if (p === 'backtests/football-flb' && method === 'POST') {
       const body = bodyOf(req);
       const result = backtestFootballFLB(String(body.csv || ''), {
@@ -84,6 +129,10 @@ export default async function handler(req, res) {
         stake: Number(body.stake || 10)
       });
       return out(res, 200, result);
+    }
+
+    if (p === 'backtests/football-flb/auto' && method === 'POST') {
+      return out(res, 200, await automaticFootballBacktest(bodyOf(req)));
     }
 
     if (p === 'research/capabilities' && method === 'GET') {
