@@ -131,8 +131,8 @@ export default async function handler(req, res) {
       return out(res, 200, result);
     }
 
-    if (p === 'backtests/football-flb/auto' && method === 'POST') {
-      return out(res, 200, await automaticFootballBacktest(bodyOf(req)));
+    if (p === 'backtests/football-flb/auto' && (method === 'POST' || method === 'GET')) {
+      return out(res, 200, await automaticFootballBacktest(method === 'POST' ? bodyOf(req) : {}));
     }
 
     if (p === 'research/capabilities' && method === 'GET') {
