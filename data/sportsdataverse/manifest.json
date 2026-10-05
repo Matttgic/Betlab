@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-04T11:16:58.492838+00:00",
+  "generatedAt": "2026-10-05T12:36:53.427070+00:00",
   "season": 2026,
   "sports": {
     "nhl": {
@@ -40,7 +40,7 @@
         },
         "load_wnba_player_boxscore": {
           "file": "wnba__load_wnba_player_boxscore.json",
-          "rows": 8293
+          "rows": 8342
         }
       },
       "healthy": true
